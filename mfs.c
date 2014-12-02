@@ -4,7 +4,7 @@ int main() {
 }
 int MFS_Init(char *hostname, int port)
 {
-
+	
 	return 0;
 }
 int MFS_Lookup(int pinum, char *name)
@@ -14,7 +14,7 @@ int MFS_Lookup(int pinum, char *name)
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
 {
-
+	
 	return 0;
 }
 int MFS_Write(int inum, char *buffer, int block)
