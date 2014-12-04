@@ -7,6 +7,6 @@ server: server.c udp.o
 runserver: server
 	server 4000 data.img
 clean:
-	rm -rf *.o *.so
+	rm -rf *.o *.so server
 # test: 
 	# python ~cs537-2/testing/p3a/MemTest.pyc .
