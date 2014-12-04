@@ -11,7 +11,5 @@ clean:
 	rm -rf *.o *.so server
 client: all
 	gcc -g -L. -lmfs -Xlinker -rpath=. -o test.o test.c
-runclient:
+runclient: client
 	test.o
-# test: 
-	# python ~cs537-2/testing/p3a/MemTest.pyc .

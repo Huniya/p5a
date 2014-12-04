@@ -12,11 +12,12 @@ int main(int argc, char *argv[])
 	int port = atoi(argv[1]);
 	char filename[60];
 	strcpy(filename, argv[2]);
-	printf("Running server on port %d with file %s\n", port, argv[2]);
 
 	int fd = UDP_Open(port);
 	struct sockaddr_in addr;
+	
 	UDP_FillSockAddr(&addr, "localhost", port);
+	printf("Running server on port %d with file %s\n", port, argv[2]);
 
 	if (fd < 0)
 		return -1;

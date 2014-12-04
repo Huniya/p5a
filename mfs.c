@@ -9,12 +9,13 @@ int main() {
 }
 int MFS_Init(char *hostname, int port)
 {
-	fd = UDP_FillSockAddr(&addr, hostname, port);
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	UDP_FillSockAddr(&addr, hostname, port);
 	return fd;
 }
 int MFS_Lookup(int pinum, char *name)
 {
-	UDP_Write(fd, &addr, "test", sizeof("test"));
+	UDP_Write(fd, &addr, "test", sizeof(message)));
 	return 0;
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
