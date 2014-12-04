@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "udp.h"
+#include "mfs.h"
 
 int main(int argc, char *argv[])
 {
@@ -12,10 +13,18 @@ int main(int argc, char *argv[])
 	char filename[60];
 	strcpy(filename, argv[2]);
 	printf("Running server on port %d with file %s\n", port, argv[2]);
-	int fd = UDP_Open(port);
-	while (fd > 0) {
-		printf("fd %d\n", fd);
 
+	int fd = UDP_Open(port);
+	struct sockaddr_in addr;
+	UDP_FillSockAddr(&addr, "localhost", port);
+
+	if (fd < 0)
+		return -1;
+
+	// char writebuffer[sizeof(response)];
+	char readbuffer[sizeof(message)];
+	while (UDP_Read(fd, &addr, readbuffer, sizeof(readbuffer)) != -1) {
+		printf("readbuffer %s\n", readbuffer);
 	}
 	return 0;
 }

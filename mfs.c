@@ -1,18 +1,20 @@
 #include "mfs.h"
 #include "udp.h"
+
+struct sockaddr_in addr;
+int fd;
+
 int main() {
 	return 0;
 }
 int MFS_Init(char *hostname, int port)
 {
-	struct sockaddr_in addr;
-	int fd = UDP_FillSockAddr(&addr, hostname, port);
-	
+	fd = UDP_FillSockAddr(&addr, hostname, port);
 	return fd;
 }
 int MFS_Lookup(int pinum, char *name)
 {
-
+	UDP_Write(fd, &addr, "test", sizeof("test"));
 	return 0;
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
