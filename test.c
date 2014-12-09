@@ -11,6 +11,11 @@ int main() {
    if (fd > -1) {
       printf("fd %d\n",fd);
       MFS_Lookup(0, "testing");
+      MFS_Lookup(0, ".");
+      MFS_Creat(0, MFS_REGULAR_FILE, "lucas");
+      MFS_Creat(0, MFS_DIRECTORY, "testing");
+      MFS_Lookup(0, "testing");
+      MFS_Lookup(0, "lucas");
    };
    exit(0);
 }

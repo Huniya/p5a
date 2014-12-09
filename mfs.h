@@ -31,6 +31,23 @@ struct __attribute__((__packed__)) dinode {
   unsigned int addrs[NDIRECT+1];   // Data block addresses
 };
 
+struct __attribute__((__packed__)) bitmap {
+  int inodes[64];
+  int data[1024];
+};
+
+struct __attribute__((__packed__)) name {
+  char name[60];
+  int inum;
+}; 
+
+struct __attribute__((__packed__)) nameblock {
+  struct name names[64];
+}; 
+
+//names per nameblock
+#define NPB 64;
+
 // Inodes per block.
 #define IPB           (BSIZE / sizeof(struct dinode))
 

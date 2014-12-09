@@ -5,7 +5,10 @@ all: mfs.c mfs.h udp.o
 	gcc server.c -Wall -Werror -o server udp.o
 server: server.c udp.o
 	gcc server.c -Wall -Werror -o server udp.o
-runserver: server
+runserver: all
+	rm -f test.img
+	touch test.img
+	chmod 755 test.img
 	server 4000 test.img
 clean:
 	rm -rf *.o *.so server results

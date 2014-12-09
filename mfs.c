@@ -26,7 +26,7 @@ int MFS_Lookup(int pinum, char *name)
 	}
 	message msg;
 	response res;
-	msg.type = LOOKUP;
+	msg.cmd[0] = LOOKUP;
 	msg.inum = pinum;
 	strcpy(msg.name, name);
 	command(&msg, &res);
@@ -52,6 +52,13 @@ int MFS_Creat(int pinum, int type, char *name)
 	if (strlen(name) > 60) {
 		return -1;
 	}
+	message msg;
+	response res;
+	msg.cmd[0] = CREAT;
+	msg.type = type;
+	msg.inum = pinum;
+	strcpy(msg.name, name);
+	command(&msg, &res);
 	return 0;
 }
 int MFS_Unlink(int pinum, char *name)
@@ -63,7 +70,7 @@ int MFS_Shutdown()
 {
 	message msg;
 	response res;
-	msg.type = SHUTDOWN;
+	msg.cmd[0] = SHUTDOWN;
 	command(&msg, &res);
 	return 0;
 }
