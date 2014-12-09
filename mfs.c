@@ -8,6 +8,11 @@ int fd;
 int main() {
 	return 0;
 }
+int command(message* msg, response* res) {
+	UDP_Write(fd, &addr, (char*) msg, sizeof(message));
+	UDP_Read(fd, &addr, (char*) res, sizeof(response));
+	return 0;
+}
 int MFS_Init(char *hostname, int port)
 {
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -16,13 +21,16 @@ int MFS_Init(char *hostname, int port)
 }
 int MFS_Lookup(int pinum, char *name)
 {
+	if (strlen(name) > 60) {
+		return -1;
+	}
 	message msg;
 	response res;
 	msg.type = LOOKUP;
-	UDP_Write(fd, &addr, (char*) &msg, sizeof(message));
-	UDP_Read(fd, &addr, (char*) &res, sizeof(response));
-	printf("Client rc %d\n", res.rc);
-	return 0;
+	msg.inum = pinum;
+	strcpy(msg.name, name);
+	command(&msg, &res);
+	return res.rc;
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
 {
@@ -41,7 +49,9 @@ int MFS_Read(int inum, char *buffer, int block)
 }
 int MFS_Creat(int pinum, int type, char *name)
 {
-
+	if (strlen(name) > 60) {
+		return -1;
+	}
 	return 0;
 }
 int MFS_Unlink(int pinum, char *name)
@@ -54,7 +64,6 @@ int MFS_Shutdown()
 	message msg;
 	response res;
 	msg.type = SHUTDOWN;
-	UDP_Write(fd, &addr, (char*) &msg, sizeof(message));
-	UDP_Read(fd, &addr, (char*) &res, sizeof(response));
+	command(&msg, &res);
 	return 0;
 }
