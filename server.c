@@ -3,6 +3,7 @@
 #include <string.h>
 #include "udp.h"
 #include "mfs.h"
+#include "common.h"
 
 int main(int argc, char *argv[])
 {
@@ -24,8 +25,17 @@ int main(int argc, char *argv[])
 
 	// char writebuffer[sizeof(response)];
 	char readbuffer[sizeof(message)];
+	message* msg;
 	while (UDP_Read(fd, &addr, readbuffer, sizeof(readbuffer)) != -1) {
-		printf("readbuffer %s\n", readbuffer);
+		msg = (message*) readbuffer;
+		response res;
+		printf("readbuffer type %d\n", msg->type);
+		if (msg->type == LOOKUP) {
+			res.rc = 200;
+			UDP_Write(fd, &addr,(char*) &res, sizeof(response));
+		} else {
+			printf("Invalid type\n");
+		}
 	}
 	return 0;
 }

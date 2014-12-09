@@ -1,5 +1,6 @@
 #include "mfs.h"
 #include "udp.h"
+#include "common.h"
 
 struct sockaddr_in addr;
 int fd;
@@ -15,7 +16,12 @@ int MFS_Init(char *hostname, int port)
 }
 int MFS_Lookup(int pinum, char *name)
 {
-	UDP_Write(fd, &addr, "test", sizeof(message)));
+	message msg;
+	response res;
+	msg.type = LOOKUP;
+	UDP_Write(fd, &addr, (char*) &msg, sizeof(message));
+	UDP_Read(fd, &addr, (char*) &res, sizeof(response));
+	printf("Client rc %d\n", res.rc);
 	return 0;
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
