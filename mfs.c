@@ -12,7 +12,7 @@ int MFS_Init(char *hostname, int port)
 {
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	UDP_FillSockAddr(&addr, hostname, port);
-	return fd;
+	return 0;
 }
 int MFS_Lookup(int pinum, char *name)
 {
@@ -51,6 +51,10 @@ int MFS_Unlink(int pinum, char *name)
 }
 int MFS_Shutdown()
 {
-
+	message msg;
+	response res;
+	msg.type = SHUTDOWN;
+	UDP_Write(fd, &addr, (char*) &msg, sizeof(message));
+	UDP_Read(fd, &addr, (char*) &res, sizeof(response));
 	return 0;
 }
