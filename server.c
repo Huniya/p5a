@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 		sb->size = 1;
 		sb->nblocks = 4; //superblock, dinode block, bitmap, data block for root inode
 		inodes->type = MFS_DIRECTORY;
-		inodes->addrs[0] = 3;
+		inodes->addrs[0] = 0;
 
 		struct nameblock root;		
 		strcpy(root.names[0].name, ".");
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 		}
 
 		int asdf = pwrite(filesystem, meta_blocks, 3*BSIZE, 0);
-		pwrite(filesystem, &root, 1*BSIZE, 3*BSIZE);
+		pwrite(filesystem, &root, 1*BSIZE, (0 + 3)*BSIZE);
 		printf("writing %d\n", asdf);
 	}
 
@@ -69,16 +69,21 @@ int main(int argc, char *argv[])
 		// msg = (message*) readbuffer;
 		response res;
 		if (msg.cmd[0] == LOOKUP) {
+			if (TestBit(bm->inodes,msg.inum) == 0) {
+				res.rc = -1;
+				UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+				continue;
+			}
 			int blocknum = (inodes + msg.inum)->addrs[0];
 			struct nameblock nb;
-			int result = pread(filesystem, &nb, 1*BSIZE, blocknum*BSIZE);
+			int result = pread(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
 			int i;
 			int inum = -1;
 			if (result != -1) {
 				for (i = 0; i < 64; i++)
 				{	
-					printf("Looking for '%s', found '%s'\n", msg.name, nb.names[i].name);
-					if (strcmp(nb.names[i].name, msg.name) == 0){
+					// printf("Looking for '%s', found '%s'\n", msg.name, nb.names[i].name);
+					if (nb.names[i].inum != -1 && strcmp(nb.names[i].name, msg.name) == 0){
 						inum = nb.names[i].inum;
 					}
 				}
@@ -86,11 +91,76 @@ int main(int argc, char *argv[])
 			res.rc = inum;
 			printf("Lookup inum %d\n", inum);
 			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+		} else if (msg.cmd[0] == UNLINK) {
+			int blocknum = (inodes + msg.inum)->addrs[0];
+			struct nameblock nb;
+			int result = pread(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
+			int i;
+			int inum = -1;
+			if (result != -1) {
+				for (i = 0; i < 64; i++)
+				{	
+					// printf("Looking for '%s', found '%s'\n", msg.name, nb.names[i].name);
+					if (strcmp(nb.names[i].name, msg.name) == 0){
+						inum = nb.names[i].inum;
+						break;
+					}
+				}
+			}
+			ClearBit(bm->inodes, inum);
+			if (result == -1 || inum == -1) {
+				res.rc = -1;
+				UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+				continue;
+			}
+
+
+			struct dinode* deleteme = (inodes + inum);
+			if (deleteme->type == MFS_REGULAR_FILE) {
+				int j;
+				for (j = 0; j < NDIRECT; j++) {
+					if (deleteme->addrs[j] != 0) {
+						ClearBit(bm->data, deleteme->addrs[j]);
+					}
+				}
+				nb.names[i].inum = -1;
+				pwrite(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
+			} else if (deleteme->type == MFS_DIRECTORY) {
+				struct nameblock deleteblock;
+				pread(filesystem, &deleteblock, 1*BSIZE, (deleteme->addrs[0] + 3)*BSIZE);;
+				int k;
+				int empty = 1;
+				for (k = 2; k < 64; k++)
+				{
+					if (deleteblock.names[k].inum != -1)
+						empty = 0;
+				}
+				if (empty == 1) {
+					nb.names[i].inum = -1;
+					pwrite(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
+				} else { //directory not empty
+					res.rc = -1;
+					UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+					continue;
+				}
+
+			}
+
+			res.rc = 0;
+			printf("Lookup inum %d\n", inum);
+			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
 		} else if (msg.cmd[0] == CREAT) {
 			struct dinode* pinode = (inodes + msg.inum);
+
+			if (pinode->type != MFS_DIRECTORY) {
+				res.rc = -1;
+				UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+				continue;
+			}
+
 			int blocknum = pinode->addrs[0];
 			struct nameblock nb;
-			int result = pread(filesystem, &nb, 1*BSIZE, blocknum*BSIZE);
+			int result = pread(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
 			int i;
 			int newinum;
 
@@ -103,31 +173,36 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			int newdatablocknum;
 			struct dinode* newdinode = (inodes + newinum);
-			for (i = 0; i < 1024; i++)
-			{
-				if (!TestBit(bm->data, i)) {
-					SetBit(bm->data, i);
-					newdatablocknum = i;
-					break;
-				}
-			}
+			
 			newdinode->type = msg.type;
 			newdinode->size = 0;
-			newdinode->addrs[0] = newdatablocknum;
 
 			sb->ninodes++;
 			sb->size++;
 			sb->nblocks++;
 
 			if (newdinode->type == MFS_DIRECTORY) {
+				int newdatablocknum;
+				for (i = 0; i < 1024; i++)
+				{
+					if (!TestBit(bm->data, i)) {
+						SetBit(bm->data, i);
+						newdatablocknum = i;
+						break;
+					}
+				}
+				newdinode->addrs[0] = newdatablocknum;
 				struct nameblock newnb;		
 				strcpy(newnb.names[0].name, ".");
 				strcpy(newnb.names[1].name, "..");
 				newnb.names[0].inum = newinum;
 				newnb.names[1].inum = msg.inum;
-				pwrite(filesystem, &newnb, 1*BSIZE, newdatablocknum*BSIZE);
+				int i;
+				for (i = 2; i < 64; i++){
+					newnb.names[i].inum = -1;
+				}
+				pwrite(filesystem, &newnb, 1*BSIZE, (newdatablocknum + 3)*BSIZE);
 			}
 
 			if (result != -1) {
@@ -135,16 +210,76 @@ int main(int argc, char *argv[])
 				{
 					if (nb.names[i].inum == -1){
 						strcpy(nb.names[i].name, msg.name);
-						printf("****%d\n", newinum);
+						// printf("****%d\n", newinum);
 						nb.names[i].inum = newinum;
 						break;
 					}
 				}
 			}
 
-			pwrite(filesystem, &nb, 1*BSIZE, blocknum*BSIZE);
+			pwrite(filesystem, &nb, 1*BSIZE, (blocknum + 3)*BSIZE);
 			pwrite(filesystem, meta_blocks, 3*BSIZE, 0);
 			fsync(filesystem);
+			res.rc = 0;
+			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+		} else if (msg.cmd[0] == STAT) {
+			struct dinode* pinode = (inodes + msg.inum);
+
+			MFS_Stat_t stat;
+			stat.type = pinode->type;
+			stat.size = pinode->size;
+
+			res.stat = stat;
+
+			res.rc = 0;
+			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+		} else if (msg.cmd[0] == WRITE) {
+			struct dinode* pinode = (inodes + msg.inum);
+
+			//error checks 
+			if (pinode->type != MFS_REGULAR_FILE || msg.blocknum > NDIRECT) {
+				res.rc = -1;
+				UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+				continue;
+			}
+
+			int blocknum = pinode->addrs[msg.blocknum];
+			printf("write blocknum %d\n", blocknum);
+			if (blocknum == 0) {
+				pinode->size += 4096;
+				int i;
+				for (i = 0; i < 1024; i++)
+				{
+					if (!TestBit(bm->data, i)) {
+						SetBit(bm->data, i);
+						blocknum = i;
+						break;
+					}
+				}
+				pinode->addrs[msg.blocknum] = blocknum;
+			}
+
+			// printf("writing block, data '%s'\n", msg.block);
+			pwrite(filesystem, msg.block, 1*BSIZE, (blocknum + 3)*BSIZE);
+
+			fsync(filesystem);
+			res.rc = 0;
+			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+		} else if (msg.cmd[0] == READ) {
+			struct dinode* pinode = (inodes + msg.inum);
+			int blocknum = pinode->addrs[msg.blocknum];
+
+			//error checks 
+			if (pinode->type != MFS_REGULAR_FILE || msg.blocknum > NDIRECT) {
+				res.rc = -1;
+				UDP_Write(fd, &addr, (char*) &res, sizeof(response));
+				continue;
+			}
+
+			pread(filesystem, res.block, 1*BSIZE, (blocknum + 3)*BSIZE);
+
+			fsync(filesystem);
+			res.rc = 0;
 			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
 		} else if (msg.cmd[0] == SHUTDOWN) {
 			res.rc = 200;

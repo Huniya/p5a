@@ -34,17 +34,42 @@ int MFS_Lookup(int pinum, char *name)
 }
 int MFS_Stat(int inum, MFS_Stat_t *m)
 {
-	
+	message msg;
+	response res;
+	msg.cmd[0] = STAT;
+	msg.inum = inum;
+	command(&msg, &res);
+	memcpy(m,&res.stat,sizeof(MFS_Stat_t));
+	m = &res.stat;
 	return 0;
 }
 int MFS_Write(int inum, char *buffer, int block)
 {
-
+	message msg;
+	response res;
+	msg.cmd[0] = WRITE;
+	msg.inum = inum;
+	msg.blocknum = block;
+	memcpy(msg.block, buffer, sizeof(char[4096]));
+      // printf("msgblock '%s'\n", msg.block);
+	command(&msg, &res);
+	if (res.rc == -1) {
+		return -1;
+	}
 	return 0;
 }
 int MFS_Read(int inum, char *buffer, int block)
 {
-
+	message msg;
+	response res;
+	msg.cmd[0] = READ;
+	msg.inum = inum;
+	msg.blocknum = block;
+	command(&msg, &res);
+	if (res.rc == -1) {
+		return -1;
+	}
+	memcpy(buffer, res.block, sizeof(res.block));
 	return 0;
 }
 int MFS_Creat(int pinum, int type, char *name)
@@ -59,12 +84,26 @@ int MFS_Creat(int pinum, int type, char *name)
 	msg.inum = pinum;
 	strcpy(msg.name, name);
 	command(&msg, &res);
+	if (res.rc == -1) {
+		return -1;
+	}
 	return 0;
 }
 int MFS_Unlink(int pinum, char *name)
 {
-
-	return 0;
+	if (strlen(name) > 60) {
+		return -1;
+	}
+	message msg;
+	response res;
+	msg.cmd[0] = UNLINK;
+	msg.inum = pinum;
+	strcpy(msg.name, name);
+	command(&msg, &res);
+	if (res.rc == -1) {
+		return -1;
+	}
+	return res.rc;
 }
 int MFS_Shutdown()
 {
