@@ -1,0 +1,9 @@
+Name: Lucas Mullens
+CSL-ID:mullens
+Name: Daniel Konen
+CSL-ID:konen
+(Leave the second name and ID blank if working alone)
+
+Linux-Implementation Details: We created a distributed filesystem using UDP. MFS commands connect to a remote server and manipulate a filesystem. We used inodes and data blocks to implement the filesystem. We did not implement indirect pointers.
+
+XV6-Implementation Details: 

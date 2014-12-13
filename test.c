@@ -20,19 +20,18 @@ int main() {
          data[i] = 'c';
       }
       MFS_Write(1, data, 0);
-      MFS_Write(1, data, 1);
-      MFS_Write(1, data, 2);
+      MFS_Write(1, data, 13);
 
-      printf("shouldnt be error %d\n", MFS_Write(1, data, 0));
-      printf("shouldnt be error %d\n", MFS_Write(1, data, 0));
-      printf("should be error %d\n", MFS_Write(1, data, 14));
+      // printf("shouldnt be error %d\n", MFS_Write(1, data, 0));
+      // printf("shouldnt be error %d\n", MFS_Write(1, data, 0));
+      // printf("should be error %d\n", MFS_Write(1, data, 14));
 
 
-      char buffer[4096];
-      MFS_Read(1, buffer, 0);
-      MFS_Creat(0, MFS_DIRECTORY, "testing");
-      MFS_Lookup(0, "testing");
-      MFS_Lookup(0, "lucas");
+      // char buffer[4096];
+      // MFS_Read(1, buffer, 0);
+      // MFS_Creat(0, MFS_DIRECTORY, "testing");
+      // MFS_Lookup(0, "testing");
+      // MFS_Lookup(0, "lucas");
       MFS_Stat_t stat;
       MFS_Stat(0, &stat);
       printf("stat stuff %d %d\n", stat.size, stat.type);
@@ -43,8 +42,8 @@ int main() {
 
 
 
-       printf("unlink shouldnt be error %d\n", MFS_Unlink(0, "lucas"));
-      printf("lookup should be error %d\n", MFS_Lookup(0, "lucas"));
+      //  printf("unlink shouldnt be error %d\n", MFS_Unlink(0, "lucas"));
+      // printf("lookup should be error %d\n", MFS_Lookup(0, "lucas"));
    };
    exit(0);
 }

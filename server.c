@@ -223,11 +223,23 @@ int main(int argc, char *argv[])
 			res.rc = 0;
 			UDP_Write(fd, &addr, (char*) &res, sizeof(response));
 		} else if (msg.cmd[0] == STAT) {
+			pread(filesystem, meta_blocks, 3*BSIZE, 0);
 			struct dinode* pinode = (inodes + msg.inum);
+
+			int j;
+			int sum = 0;
+			if (pinode->type == MFS_REGULAR_FILE) {
+				for (j = 0; j < NDIRECT + 1; j++) {
+					if (pinode->addrs[j] != 0) {
+						sum = (j+1)*4096;
+					}
+				}
+			}
+			
 
 			MFS_Stat_t stat;
 			stat.type = pinode->type;
-			stat.size = pinode->size;
+			stat.size = sum;
 
 			res.stat = stat;
 
@@ -244,9 +256,9 @@ int main(int argc, char *argv[])
 			}
 
 			int blocknum = pinode->addrs[msg.blocknum];
-			printf("write blocknum %d\n", blocknum);
 			if (blocknum == 0) {
-				pinode->size += 4096;
+			printf("write blocknum %d\n", pinode->size);
+				// pinode->size += 4096;
 				int i;
 				for (i = 0; i < 1024; i++)
 				{
@@ -260,6 +272,7 @@ int main(int argc, char *argv[])
 			}
 
 			// printf("writing block, data '%s'\n", msg.block);
+			pwrite(filesystem, meta_blocks, 3*BSIZE, 0);
 			pwrite(filesystem, msg.block, 1*BSIZE, (blocknum + 3)*BSIZE);
 
 			fsync(filesystem);
